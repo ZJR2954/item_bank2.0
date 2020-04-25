@@ -1,19 +1,301 @@
 <template>
   <div>
-    <!-- 面包屑导航区域 -->
+    <!--面包屑导航区域-->
     <el-breadcrumb separator="/">
       <el-breadcrumb-item :to="{ path: '/home' }">首页</el-breadcrumb-item>
       <el-breadcrumb-item>题库</el-breadcrumb-item>
     </el-breadcrumb>
+
+    <!--查询试题卡片-->
+    <el-card>
+      <el-form class="search_form" size="mini" label-width="85px"
+               ref="searchQuestionFormRef" :model="searchQuestionForm">
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="试题id">
+              <el-input placeholder="请输入试题id" v-model="searchQuestionForm.q_id" clearable/>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col :span="8">
+            <el-form-item label="试题题型">
+              <el-select placeholder="请选择试题题型" v-model="searchQuestionForm.q_type">
+                <el-option v-for="item in qTypeList" :label="item.q_type_name" :key="item.q_type_id"
+                           :value="item.q_type_name">
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="所属章节">
+              <el-select placeholder="请选择所属章节" v-model="searchQuestionForm.q_chapter">
+                <el-option v-for="item in chapterList" :label="item.chapter_name" :key="item.chapter_id"
+                           :value="item.chapter_name">
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="关键字">
+              <el-input placeholder="请输入试题关键字" v-model="searchQuestionForm.tags" clearable/>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row>
+          <el-col align="center">
+            <el-button size="medium" type="primary" @click="searchQuestion">检索试题</el-button>
+          </el-col>
+        </el-row>
+      </el-form>
+    </el-card>
+
+    <!--检索结果卡片-->
+    <el-card class="question_list">
+      <div>检索结果</div>
+      <!--试题列表区域-->
+      <el-table border stripe :data="questionList">
+        <el-table-column type="index" label="#"></el-table-column>
+        <el-table-column label="题型" prop="q_type"></el-table-column>
+        <el-table-column label="试题内容预览" width="320px">
+          <template slot-scope="scope">
+            <p class="question_content_preview">{{scope.row.q_content}}</p>
+          </template>
+        </el-table-column>
+        <el-table-column label="上传时间" width="150px" prop="upload_time"></el-table-column>
+        <el-table-column label="试题状态" prop="q_state"></el-table-column>
+        <el-table-column label="操作" width="180px">
+          <template slot-scope="scope">
+            <el-button size="mini" type="primary"
+                       @click="showQuestionDetail(scope.row.q_id)">
+              详情
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <!--分页区域-->
+      <el-pagination layout="total, sizes, prev, pager, next, jumper"
+                     :total="total" :page-sizes="[5, 10, 30]"
+                     :page-size="queryInfo.pageSize" :current-page="queryInfo.pageNum"
+                     @size-change="handleSizeChange" @current-change="handleCurrentChange">
+      </el-pagination>
+    </el-card>
+
   </div>
 </template>
 
 <script>
   export default {
-    name: "questions"
+    name: "questions",
+    data() {
+      return {
+        //题型列表
+        qTypeList: [],
+        //章节列表
+        chapterList: [],
+        //检索试题表单数据
+        searchQuestionForm: {
+          q_id: '',
+          q_type: '',
+          q_chapter: '',
+          tags: ''
+        },
+        //试题列表
+        questionList: [],
+        //获取试题列表的参数对象
+        queryInfo: {
+          query: '',
+          // 当前的页数
+          pageNum: 1,
+          // 当前每页显示多少条数据
+          pageSize: 1
+        },
+        //试题列表数据总数
+        total: 0
+      }
+    },
+    methods: {
+      //获取题型列表数据
+      getQTypeList() {
+        //模拟网络请求
+        setTimeout(() => {
+          const {data: res} = {
+            data: {
+              data: {
+                qTypeList: [
+                  {q_type_id: 1, q_type_name: "选择题", subject_id: 1},
+                  {q_type_id: 2, q_type_name: "填空题", subject_id: 1},
+                  {q_type_id: 3, q_type_name: "简答题", subject_id: 1}
+                ]
+              },
+              meta: {msg: "", status: 200}
+            }
+          };
+          console.log("获取题型列表返回的数据：", res);//-----------------------------------------------------------------
+          if (res.meta.status !== 200) {
+            return this.$message.error('获取题型列表失败！');
+          }
+          this.qTypeList = res.data.qTypeList;
+        }, 300);
+      },
+      //获取章节列表数据
+      getChapterList() {
+        //模拟网络请求
+        setTimeout(() => {
+          const {data: res} = {
+            data: {
+              data: {
+                chapterList: [
+                  {chapter_id: 1, chapter_name: "绪论", subject_id: 1},
+                  {chapter_id: 2, chapter_name: "链表", subject_id: 1}
+                ]
+              },
+              meta: {msg: "", status: 200}
+            }
+          };
+          console.log("获取章节列表返回的数据：", res);//-----------------------------------------------------------------
+          if (res.meta.status !== 200) {
+            return this.$message.error('获取章节列表失败！');
+          }
+          this.chapterList = res.data.chapterList;
+        }, 300);
+      },
+      //点击按钮发起检索请求
+      searchQuestion() {
+        if (this.searchQuestionForm.q_id.trim().length == 0 &&
+            this.searchQuestionForm.q_chapter.trim().length == 0 &&
+            this.searchQuestionForm.q_type.trim().length == 0 &&
+            this.searchQuestionForm.tags.trim().length == 0) {
+          return this.$message.error('请至少填写一项查询条件');
+        }
+        this.getQuestionList();
+      },
+      //获取试题列表数据
+      getQuestionList() {
+        console.log("获取试题列表提交的数据：", {searQuestionForm: this.searchQuestionForm, queryInfo: this.queryInfo});//-
+        //模拟网络请求
+        setTimeout(() => {
+          const {data: res} = {
+            data: {
+              data: {
+                total: 4,
+                pageNum: 1,
+                questionList: [
+                  {
+                    q_id: 1,
+                    q_state: "通过",
+                    q_type: "选择题",
+                    q_content: "<p>\n" +
+                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    B. q-&gt;next=p-&gt;next; p=q;\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
+                    "</p>",
+                    upload_time: "2020-01-18 14:00"
+                  },
+                  {
+                    q_id: 2,
+                    q_state: "通过",
+                    q_type: "填空题",
+                    q_content: "<p>\n" +
+                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
+                    "</p>\n",
+                    upload_time: "2020-01-18 15:30"
+                  },
+                  {
+                    q_id: 3,
+                    q_state: "通过",
+                    q_type: "选择题",
+                    q_content: "<p>\n" +
+                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    B. q-&gt;next=p-&gt;next; p=q;\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
+                    "</p>\n" +
+                    "<p>\n" +
+                    "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
+                    "</p>",
+                    upload_time: "2020-01-18 16:00"
+                  },
+                  {
+                    q_id: 4,
+                    q_state: "通过",
+                    q_type: "填空题",
+                    q_content: "<p>\n" +
+                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
+                    "</p>\n",
+                    upload_time: "2020-01-18 16:30"
+                  }
+                ]
+              },
+              meta: {msg: "", status: 200}
+            }
+          };
+          console.log("获取试题列表返回的数据：", res);//-----------------------------------------------------------------
+          if (res.meta.status !== 200) {
+            return this.$message.error('获取试题列表失败！');
+          }
+          this.questionList = res.data.questionList;
+          this.total = res.data.total;
+        }, 300);
+      },
+      //监听pageSize改变
+      handleSizeChange(newSize) {
+        this.queryInfo.pageSize = newSize;
+        this.getQuestionList();
+      },
+      //监听页码值改变
+      handleCurrentChange(newCurrent) {
+        this.queryInfo.pageNum = newCurrent;
+        this.getQuestionList();
+      },
+      //点击按钮显示试题信息详情
+      showQuestionDetail(q_id) {
+        //跳转到详情页
+        this.$router.push({
+          path: '/question_detail',
+          query: {q_id: q_id}
+        }).catch(err => err);
+      }
+    },
+    created() {
+      this.getQTypeList();
+      this.getChapterList();
+      this.getQuestionList();
+    }
   }
 </script>
 
 <style scoped>
+  .search_form .el-input, .el-select {
+    width: 100%;
+  }
 
+  .question_list div {
+    font-size: 14px;
+  }
+
+  .question_list .question_content_preview {
+    width: 300px;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2; /*只显示两行*/
+    overflow: hidden;
+  }
 </style>

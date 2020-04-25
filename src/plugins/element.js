@@ -27,7 +27,11 @@ import {
   Table,
   TableColumn,
   Pagination,
-  Dialog
+  Dialog,
+  CheckboxGroup,
+  Checkbox,
+  InputNumber,
+  Divider
 } from 'element-ui'
 
 Vue.use(Button)
@@ -56,5 +60,9 @@ Vue.use(Table)
 Vue.use(TableColumn)
 Vue.use(Pagination)
 Vue.use(Dialog)
+Vue.use(CheckboxGroup)
+Vue.use(Checkbox)
+Vue.use(InputNumber)
+Vue.use(Divider)
 Vue.prototype.$message = Message
 Vue.prototype.$confirm = MessageBox.confirm

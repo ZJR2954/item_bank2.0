@@ -26,3 +26,7 @@ html, body, #app {
 .el-pagination {
     margin-top: 10px;
 }
+
+.el-divider {
+    margin: 15px 0;
+}

@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import store from '../store/index'
 
 /*路由懒加载*/
 //登录页面
@@ -10,36 +11,40 @@ const Home = () => import("../views/Home")
 const Welcome = () => import("../views/Welcome")
 //用户列表页
 const UserList = () => import("../views/content/user/UserList")
+//个人信息页
+const Profile = () => import("../views/content/user/Profile")
+//通知列表页
+const NoticeList = () => import("../views/content/notice/NoticeList")
 //学校列表页
 const SchoolList = () => import("../views/content/school/SchoolList")
 //用户类型管理页
 const UserTypeManager = () => import("../views/content/user_type/UserTypeManager")
-//个人信息页
-const Profile = () => import("../views/content/user/Profile")
-//通知管理页
-const NoticeManager = () => import("../views/content/notice/NoticeManager")
-//通知页
-const Notice = () => import("../views/content/notice/Notice")
 //院系列表页
 const FacultyList = () => import("../views/content/faculty/FacultyList")
-//学科列表页
-const SubjectList = () => import("../views/content/major/SubjectList")
 //专业列表页
 const MajorList = () => import("../views/content/major/MajorList")
+//学科列表页
+const SubjectList = () => import("../views/content/major/SubjectList")
+//学科详情页
+const SubjectDetail = () => import("../views/content/major/SubjectDetail")
 //待审试题页
 const PendingQuestions = () => import("../views/content/question/PendingQuestions")
+//试题详情页
+const QuestionDetail = () => import("../views/content/question/QuestionDetail")
 //题库页
 const Questions = () => import("../views/content/question/Questions")
 //我的选题页
 const MyOptions = () => import("../views/content/question/MyOptions")
+//我的试题页
+const MyQuestions = () => import("../views/content/question/MyQuestions")
+//上传试题页
+const UploadQuestion = () => import("../views/content/question/UploadQuestion")
 //组卷页
 const MakeExamPaper = () => import("../views/content/exam_paper/MakeExamPaper")
 //我的试卷页
 const MyExamPaper = () => import("../views/content/exam_paper/MyExamPaper")
-//上传试题页
-const UploadQuestion = () => import("../views/content/question/UploadQuestion")
-//我的试题页
-const MyQuestions = () => import("../views/content/question/MyQuestions")
+//试卷详情页
+const ExamPaperDetail = () => import("../views/content/exam_paper/ExamPaperDetail")
 
 Vue.use(VueRouter)
 
@@ -64,16 +69,19 @@ const routes = [
       {path: '/school_list', component: SchoolList},
       {path: '/user_type_manager', component: UserTypeManager},
       {path: '/profile', component: Profile},
-      {path: '/notice_manager', component: NoticeManager},
-      {path: '/notice', component: Notice},
+      {path: '/notice_manager', component: NoticeList},
+      {path: '/notice', component: NoticeList},
       {path: '/faculty_list', component: FacultyList},
       {path: '/subject_list', component: SubjectList},
+      {path: '/subject_detail', component: SubjectDetail},
       {path: '/major_list', component: MajorList},
       {path: '/pending_questions', component: PendingQuestions},
+      {path: '/question_detail', component: QuestionDetail},
       {path: '/questions', component: Questions},
       {path: '/my_options', component: MyOptions},
       {path: '/make_exam_paper', component: MakeExamPaper},
       {path: '/my_exam_paper', component: MyExamPaper},
+      {path: '/exam_paper_detail', component: ExamPaperDetail},
       {path: '/upload_question', component: UploadQuestion},
       {path: '/my_questions', component: MyQuestions}
     ]
@@ -92,7 +100,11 @@ router.beforeEach((to, from, next) => {
   //获取token
   const tokenStr = window.sessionStorage.getItem('token');
   if (!tokenStr) return next('/login');
-  next();
+  if (to.path === '/home' || to.path === '/welcome') return next();
+  for (let item of store.state.menu.menu) {
+    if (to.path === item.path || to.path == item.childPath) return next();
+  }
+  next('/home');
 })
 
 export default router

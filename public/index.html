@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
+
+    <!--引入kityformula公式插件，由于加载顺序问题，这里需加载UEditor一次-->
+    <script type="text/javascript" charset="utf-8" src="./UEditor/ueditor.config.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./UEditor/ueditor.all.min.js"> </script>
+    <script type="text/javascript" charset="utf-8" src="./UEditor/lang/zh-cn/zh-cn.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./UEditor/kityformula-plugin/addKityFormulaDialog.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./UEditor/kityformula-plugin/getKfContent.js"></script>
+    <script type="text/javascript" charset="utf-8" src="./UEditor/kityformula-plugin/defaultFilterFix.js"></script>
+
   </head>
   <body>
     <noscript>
