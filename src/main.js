@@ -4,7 +4,7 @@ import router from './router'
 import axios from 'axios'
 import store from './store'
 //cdn方式引入时注释
-import './plugins/element.js'
+// import './plugins/element.js'
 
 // 导入全局样式表
 import './assets/css/base.css'
