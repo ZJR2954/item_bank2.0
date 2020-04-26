@@ -11,6 +11,17 @@ module.exports = {
         },
       }
     }
+  },
+
+  //生产环境下的配置，cdn方式引入依赖
+  chainWebpack: config => {
+    config.when(process.env.NODE_ENV === 'production', config => {
+      config.set('externals', {
+        vue: 'Vue',
+        'vue-router': 'VueRouter',
+        axios: 'axios'
+      })
+    })
   }
 
 }

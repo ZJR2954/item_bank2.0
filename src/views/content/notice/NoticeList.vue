@@ -68,7 +68,7 @@
         </div>
         <div>
           <el-form-item label="通知内容" prop="n_content">
-            <el-input type="textarea" v-model="addNoticeForm.n_content"/>
+            <el-input rows="10" type="textarea" v-model="addNoticeForm.n_content"/>
           </el-form-item>
         </div>
       </el-form>
