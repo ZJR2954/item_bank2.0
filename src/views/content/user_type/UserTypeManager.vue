@@ -36,7 +36,7 @@
                :visible.sync="userTypeDialogVisible" @close="userTypeDetailClosed">
       <el-table size="mini" height="300px" :data="userPowerList" ref="userTypeDetailRef"
                 @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="35px"></el-table-column>
+        <el-table-column type="selection" width="40px"></el-table-column>
         <el-table-column label="权限描述" width="150px" prop="desc"></el-table-column>
         <el-table-column label="系统功能" prop="power"></el-table-column>
       </el-table>
