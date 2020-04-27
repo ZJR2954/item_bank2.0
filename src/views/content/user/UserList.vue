@@ -29,9 +29,9 @@
         <el-row>
           <el-col :span="8">
             <el-form-item label="所属学校">
-              <el-select placeholder="请选择所属学校" v-model="searchUserForm.school">
+              <el-select placeholder="请选择所属学校" v-model="searchUserForm.u_school">
                 <el-option v-for="item in schoolList" :label="item.school_name" :key="item.school_id"
-                           :value="item.school_id">
+                           :value="item.school_name">
                 </el-option>
               </el-select>
             </el-form-item>
@@ -262,7 +262,7 @@
         //检索用户表单数据
         searchUserForm: {
           u_id: '',
-          u_type: '',
+          u_type: null,
           u_school: '',
           job_number: '',
           name: '',
@@ -480,7 +480,7 @@
       //点击按钮发起检索请求
       searchUser() {
         if (this.searchUserForm.u_id.trim().length == 0 &&
-            this.searchUserForm.u_type.trim().length == 0 &&
+            this.searchUserForm.u_type == null &&
             this.searchUserForm.u_school.trim().length == 0 &&
             this.searchUserForm.job_number.trim().length == 0 &&
             this.searchUserForm.name.trim().length == 0 &&
