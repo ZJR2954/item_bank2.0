@@ -60,8 +60,8 @@
         loginForm: {
           school: null,
           u_type: null,
-          username: '',
-          password: ''
+          username: '123456',
+          password: '123456'
         },
         //登录表单验证规则对象
         loginFormRules: {
