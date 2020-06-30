@@ -55,7 +55,9 @@
         userInfo: {
           user: {},
           userType: {}
-        }
+        },
+        _beforeUnload_time: null,
+        _gap_time: null
       }
     },
     computed: {
@@ -70,7 +72,6 @@
       ...mapActions(['saveMenu', 'removeAll']),
       //获取菜单列表
       getMenuList() {
-        console.log("获取菜单列表提交的数据：", this.userInfo.userType);//-----------------------------------------------
         //模拟网络请求
         setTimeout(() => {
           const {data: res} = {
@@ -226,7 +227,6 @@
               res.menuList.unshift(item);
             }
           }
-          console.log("获取菜单列表返回的数据：", res);//-----------------------------------------------------------------
           if (res.meta.status !== 200) {
             return this.$message.error("获取菜单列表失败！");
           }
@@ -246,10 +246,12 @@
       },
       //退出登录事件
       logout() {
-        this.removeAll();
-        window.sessionStorage.clear();
-        this.$router.replace('/login').catch(err => err);
-        this.$message.success("已退出！");
+        this.$http.get('/user/logout').then(() => {
+          this.removeAll();
+          window.sessionStorage.clear();
+          this.$router.replace('/login').catch(err => err);
+          this.$message.success("已退出！");
+        });
       }
     },
     created() {

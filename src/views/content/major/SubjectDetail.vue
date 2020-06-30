@@ -15,11 +15,12 @@
         <el-row>
           <el-col :span="8">
             <el-form-item label="学科名" prop="subject.subject_name">
-              <el-input v-model="subjectDetail.subject.subject_name"/>
+              <el-input disabled v-model="subjectDetail.subject.subject_name"/>
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-button style="margin: 0 10px" size="mini" type="primary" @click="saveSubjectDetail">保存修改</el-button>
+            <el-button v-if="false" style="margin: 0 10px" size="mini" type="primary" @click="saveSubjectDetail">保存修改
+            </el-button>
           </el-col>
         </el-row>
         <!--题型列表区域-->
@@ -96,6 +97,8 @@
 </template>
 
 <script>
+  import {mapGetters} from 'vuex'
+
   export default {
     name: "subject-detail",
     data() {
@@ -118,7 +121,8 @@
         addQTypeDialogVisible: false,
         //添加题型的表单信息
         addQTypeForm: {
-          q_type_name: ''
+          q_type_name: '',
+          subject_id: null
         },
         //添加题型表单信息的验证规则
         addQTypeFormRules: {
@@ -130,7 +134,8 @@
         addChapterDialogVisible: false,
         //添加章节的表单信息
         addChapterForm: {
-          chapter_name: ''
+          chapter_name: '',
+          subject_id: null
         },
         //添加章节表单信息的验证规则
         addChapterFormRules: {
@@ -141,38 +146,25 @@
       }
     },
     methods: {
+      //从vuex获取相关方法
+      ...mapGetters(['getFacultyId']),
       //获取学科信息详情数据
       getSubjectDetail() {
-        console.log("获取学科信息详情提交的数据：", this.$route.query.subject_id);//--------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                subjectDetail: {
-                  subject: {subject_id: 1, subject_name: "数据结构", category: "工学", major_id: 1},
-                  qTypeList: [
-                    {q_type_id: 1, q_type_name: "选择题", subject_id: 1},
-                    {q_type_id: 2, q_type_name: "填空题", subject_id: 1},
-                    {q_type_id: 3, q_type_name: "简答题", subject_id: 1}
-                  ],
-                  chapterList: [
-                    {chapter_id: 1, chapter_name: "绪论", subject_id: 1},
-                    {chapter_id: 2, chapter_name: "链表", subject_id: 1}
-                  ]
-                }
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取章节列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
             return this.$message.error('获取学科信息失败！');
           }
-          this.subjectDetail = res.data.subjectDetail;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if (item.subject.subject_id == this.$route.query.subject_id) {
+              this.subjectDetail.subject = item.subject;
+              this.subjectDetail.chapterList = item.characters;
+              this.subjectDetail.qTypeList = item.questionTypes;
+            }
+          });
+        });
       },
-      //点击按钮发起保存学科信息请求
+      //点击按钮发起保存学科信息请求-------此方法暂时未使用
       saveSubjectDetail() {
         this.$refs.subjectDetailFormRef.validate(async (valid) => {
           if (!valid) return;
@@ -211,19 +203,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除题型提交的信息：", q_type_id);//-----------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除题型返回的信息：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除题型失败！');
+        //网络请求
+        this.$http.delete('/subject/delete_q_type/' + this.getFacultyId() + '/' + q_type_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除题型成功！');
+          this.$message.success(res.data.message);
           this.getSubjectDetail();
-        }, 300);
+        });
       },
       //点击按钮发起根据id删除章节请求
       async deleteChapterById(chapter_id) {
@@ -236,20 +223,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除章节提交的数据：", chapter_id);//----------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除章节返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除章节失败！');
+        //网络请求
+        this.$http.delete('/subject/delete_chapter/' + this.getFacultyId() + '/' + chapter_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除章节成功！');
+          this.$message.success(res.data.message);
           this.getSubjectDetail();
-        }, 300);
-
+        });
       },
       //点击按钮发起添加题型请求
       addQType() {
@@ -264,20 +245,16 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("添加题型提交的数据：", this.addQTypeForm);//-------------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加题型返回的数据：", res);//-------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加题型失败！');
+          this.addQTypeForm.subject_id = this.$route.query.subject_id;
+          //网络请求
+          this.$http.post('/subject/add_q_type/' + this.getFacultyId(), this.addQTypeForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('添加题型成功！');
+            this.$message.success(res.data.message);
             this.addQTypeDialogVisible = false;
             this.getSubjectDetail();
-          }, 300);
+          });
         });
       },
       //监听添加题型对话框关闭事件
@@ -297,20 +274,16 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("添加章节提交的信息：", this.addChapterForm);//----------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加章节返回的信息：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加章节失败！');
+          this.addChapterForm.subject_id = this.$route.query.subject_id;
+          //网络请求
+          this.$http.post('/subject/add_chapter/' + this.getFacultyId(), this.addChapterForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('添加章节成功！');
+            this.$message.success(res.data.message);
             this.addChapterDialogVisible = false;
             this.getSubjectDetail();
-          }, 300);
+          });
         });
       },
       //监听添加章节对话框关闭事件

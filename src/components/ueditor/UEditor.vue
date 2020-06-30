@@ -23,7 +23,7 @@
       return {
         text: this.value,
         myConfig: {
-          // serverUrl: 'http://127.0.0.1:8081/config',
+          serverUrl: 'http://127.0.0.1:8000/api/ueditor',
           UEDITOR_HOME_URL: '/UEditor/',
           autoHeightEnabled: false,
           initialFrameWidth: '100%',
@@ -38,7 +38,7 @@
             'directionalityltr', 'directionalityrtl', 'indent', '|',
             'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|', 'touppercase', 'tolowercase', '|',
             'imagenone', 'imageleft', 'imageright', 'imagecenter', '|',
-            'simpleupload', 'insertimage', 'emotion', 'scrawl', 'insertcode', 'pagebreak', 'template', '|',
+            'insertimage', 'emotion', 'scrawl', 'insertcode', 'pagebreak', 'template', '|',
             'horizontal', 'spechars', '|',
             'inserttable', 'deletetable', 'insertparagraphbeforetable', 'insertrow', 'deleterow', 'insertcol', 'deletecol', 'mergecells', 'mergeright', 'mergedown', 'splittocells', 'splittorows', 'splittocols', 'charts', '|',
             'preview', 'searchreplace', 'kityformula'

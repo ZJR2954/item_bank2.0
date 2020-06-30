@@ -11,11 +11,6 @@
     <el-card class="exam_paper_detail">
       <!--试卷信息详情-->
       <u-editor class="u_editor" v-model="examPaperContent"/>
-      <el-row>
-        <el-col align="center">
-          <el-button size="medium" type="primary" @click="downloadExamPaper">下载</el-button>
-        </el-col>
-      </el-row>
     </el-card>
   </div>
 </template>
@@ -42,63 +37,17 @@
     methods: {
       //获取试卷信息详情数据
       getExamPaperDetail() {
-        console.log("获取试卷信息详情提交的数据：", this.$route.query.e_id);//--------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                examPaperDetail: {
-                  exam_paper: {},
-                  questionList: [
-                    {
-                      q_id: 1,
-                      q_state: "通过",
-                      q_type: "选择题",
-                      q_content: "<p>\n" +
-                      "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                      "</p>\n" +
-                      "<p>\n" +
-                      "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
-                      "</p>\n" +
-                      "<p>\n" +
-                      "    B. q-&gt;next=p-&gt;next; p=q;\n" +
-                      "</p>\n" +
-                      "<p>\n" +
-                      "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
-                      "</p>\n" +
-                      "<p>\n" +
-                      "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
-                      "</p>",
-                      upload_time: "2020-01-18 14:00"
-                    },
-                    {
-                      q_id: 2,
-                      q_state: "通过",
-                      q_type: "填空题",
-                      q_content: "<p>\n" +
-                      "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                      "</p>\n",
-                      upload_time: "2020-01-18 15:30"
-                    },
-                  ]
-                }
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取试卷信息详情返回的数据：", res);//-------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取试卷信息失败！');
+        //网络请求
+        this.$http.get("/exam_paper/exam_paper_detail/" + this.$route.query.e_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.examPaperDetail = res.data.examPaperDetail;
-          for (let item of this.examPaperDetail.questionList) {
-            this.examPaperContent += item.q_content + "<br/>";
+          this.examPaperDetail = res.data.data.examPaperDetail;
+          this.examPaperContent += "试卷标题：" + this.examPaperDetail.examPaper.e_title + "<br/><br/>";
+          for (let i = 0; i < this.examPaperDetail.questionList.length; i++) {
+            this.examPaperContent += this.examPaperDetail.questionList[i].q_content;
           }
-        }, 300);
-      },
-      //点击按钮下载试卷
-      downloadExamPaper() {
+        });
       }
     },
     created() {

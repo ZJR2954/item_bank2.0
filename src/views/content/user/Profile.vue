@@ -32,7 +32,10 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="所属院系：">
-              {{userDetail.user.u_faculty}}
+              {{
+              userDetail.user.u_faculty != null && userDetail.user.u_faculty.trim() != '' ?
+              userDetail.user.u_faculty : '无'
+              }}
             </el-form-item>
           </el-col>
         </el-row>
@@ -44,7 +47,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="操作学科：">
-              {{userDetail.user.operate_subject}}
+              {{userDetail.user.operate_subject != null ? operate_subject : '无' }}
             </el-form-item>
           </el-col>
         </el-row>
@@ -68,7 +71,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="用户状态：">
-              {{userDetail.user.u_state}}
+              {{userDetail.user.u_state == 1 ? '正常' : '异常'}}
             </el-form-item>
           </el-col>
         </el-row>
@@ -136,6 +139,8 @@
           user: {},
           userType: {}
         },
+        //操作学科名
+        operate_subject: '',
         //修改用户信息详情的验证规则
         userDetailRules: {
           user: {
@@ -165,49 +170,28 @@
           rePassword: [
             {required: true, message: '请确认密码'},
             {validator: validatePassword, trigger: ['blur', 'change']}
-          ],
+          ]
         }
       }
     },
     methods: {
       //获取我的信息数据
       getProfile() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                user: {
-                  u_id: 1,
-                  u_type: 1,
-                  u_school: "长江大学",
-                  u_faculty: "计算机科学学院",
-                  job_number: "111111111",
-                  name: "正经仁",
-                  id_number: "111111111111111111",
-                  email: "1111111111@qq.com",
-                  telephone: "11111111111",
-                  operate_subject: 1,
-                  u_state: "正常"
-                },
-                userType: {
-                  u_type: 1,
-                  u_type_name: "超级管理员",
-                  u_power: "0"
-                }
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          //用vuex模拟后台返回数据
-          res.data.user = this.$store.state.user.user;
-          res.data.userType = this.$store.state.user.userType;
-          console.log("获取个人信息返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取个人信息失败！');
+        //网络请求
+        this.$http.get('/user/profile').then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.userDetail = res.data;
-        }, 300);
+          this.userDetail = res.data.data.userMsg;
+          this.$http.get('/subject/subject_list/' + res.data.data.userMsg.faculty_id + '/1/1000').then((res) => {
+            this.operate_subject = '';
+            res.data.data.rows.forEach((item) => {
+              if (item.subject.subject_id == this.userDetail.user.operate_subject) {
+                this.operate_subject = item.subject.subject_name;
+              }
+            });
+          });
+        });
       },
       //点击按钮发起保存个人信息请求
       saveUserInfo() {
@@ -222,19 +206,14 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("保存个人信息提交的数据：", this.userDetail);//-----------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("保存个人信息返回的数据：", res);//---------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('保存个人信息失败！');
+          //网络请求
+          this.$http.put('/user/update', this.userDetail.user).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
             this.$message.success('保存个人信息成功！');
             this.getProfile();
-          }, 300);
+          });
         });
       },
       //点击按钮发起修改登录密码请求
@@ -250,19 +229,14 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("修改登录密码提交的数据：", this.changePasswordForm);//---------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("修改登录密码返回的数据：", res);//---------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('修改登录密码失败！');
+          //网络请求
+          this.$http.put('/user/change_password', this.changePasswordForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
             this.$message.success('修改登录密码成功！');
             this.$bus.$emit('logout');
-          }, 300);
+          });
         });
       }
     },

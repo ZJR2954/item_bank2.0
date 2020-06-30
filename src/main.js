@@ -12,6 +12,12 @@ import './assets/css/base.css'
 Vue.config.productionTip = false
 
 Vue.prototype.$http = axios
+axios.defaults.baseURL = '/api'
+//请求拦截器
+axios.interceptors.request.use(config => {
+  config.headers.Authorization = window.sessionStorage.getItem('token');
+  return config;
+})
 
 //添加事件总线对象
 Vue.prototype.$bus = new Vue()

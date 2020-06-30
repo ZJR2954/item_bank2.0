@@ -13,7 +13,11 @@
         <el-table-column type="index" label="#"></el-table-column>
         <el-table-column label="学校名" prop="school.school_name"></el-table-column>
         <el-table-column label="管理员姓名" prop="user.name"></el-table-column>
-        <el-table-column label="管理员状态" prop="user.u_state"></el-table-column>
+        <el-table-column label="管理员状态">
+          <template slot-scope="scope">
+            {{scope.row.user.u_state == 1 ? '正常' : '异常'}}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180px">
           <template slot-scope="scope">
             <el-button size="mini" type="danger" icon="el-icon-delete"
@@ -70,7 +74,7 @@
           // 当前的页数
           pageNum: 1,
           // 当前每页显示多少条数据
-          pageSize: 1
+          pageSize: 5
         },
         //学校列表数据总数
         total: 0,
@@ -91,46 +95,15 @@
     methods: {
       //获取学校列表数据
       getSchoolList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 5,
-                pageNum: 1,
-                schoolList: [
-                  {
-                    school: {school_id: 1, school_name: "长江大学", u_id: 1},
-                    user: {u_id: 1, name: "正经仁", u_state: "正常"}
-                  },
-                  {
-                    school: {school_id: 2, school_name: "清华大学", u_id: 2},
-                    user: {u_id: 2, name: "李二", u_state: "正常"}
-                  },
-                  {
-                    school: {school_id: 3, school_name: "北京大学", u_id: 3},
-                    user: {u_id: 3, name: "李三", u_state: "正常"}
-                  },
-                  {
-                    school: {school_id: 4, school_name: "华中科技大学", u_id: 4},
-                    user: {u_id: 4, name: "李四", u_state: "限制登录"}
-                  },
-                  {
-                    school: {school_id: 5, school_name: "武汉大学", u_id: 5},
-                    user: {u_id: 5, name: "李五", u_state: "正常"}
-                  }
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取信息列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取学校列表失败！');
+        this.schoolList = [];
+        //网络请求
+        this.$http.get('/school/school_list/' + this.queryInfo.pageNum + '/' + this.queryInfo.pageSize).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.schoolList = res.data.schoolList;
-          this.total = res.data.total;
-        }, 300);
+          this.schoolList = res.data.data.rows;
+          this.total = res.data.data.total;
+        });
       },
       //监听pageSize改变
       handleSizeChange(newSize) {
@@ -153,19 +126,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除学校提交的数据：", school_id);//-----------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除信息返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除学校失败！');
+        //网络请求
+        this.$http.delete('/school/delete_school/' + school_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除学校成功！');
+          this.$message.success(res.data.message);
           this.getSchoolList();
-        }, 300);
+        });
       },
       //点击按钮发起添加学校请求
       addSchool() {
@@ -180,20 +148,15 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消添加');
           }
-          console.log("添加学校提交的数据：", this.addSchoolForm);//-----------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加学校返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加学校失败！');
+          //网络请求
+          this.$http.post('/school/add_school', this.addSchoolForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('添加学校成功！');
+            this.$message.success(res.data.message);
             this.addSchoolDialogVisible = false;
             this.getSchoolList();
-          }, 300);
+          });
         });
       },
       //监听添加学校对话框关闭事件

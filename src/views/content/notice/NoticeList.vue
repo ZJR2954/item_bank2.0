@@ -20,7 +20,8 @@
                        @click="showNoticeDetailDialog(scope.row)">
               详情
             </el-button>
-            <el-button v-if="isNoticeManager" size="mini" type="danger" icon="el-icon-delete"
+            <el-button v-if="getUser().u_id == 1 || (isNoticeManager && scope.row.u_id == getUser().u_id)"
+                       size="mini" type="danger" icon="el-icon-delete"
                        @click="deleteNoticeById(scope.row.n_id)">
               删除
             </el-button>
@@ -83,6 +84,8 @@
 </template>
 
 <script>
+  import {mapGetters} from 'vuex'
+
   export default {
     name: "notice-list",
     data() {
@@ -95,7 +98,7 @@
           // 当前的页数
           pageNum: 1,
           // 当前每页显示多少条数据
-          pageSize: 1
+          pageSize: 5
         },
         //通知列表数据总数
         total: 0,
@@ -108,7 +111,9 @@
         //发布新通知的表单信息
         addNoticeForm: {
           n_title: '',
-          n_content: ''
+          n_content: '',
+          u_name: '',
+          u_id: null
         },
         //发布新通知表单信息的验证规则
         addNoticeFormRules: {
@@ -128,63 +133,18 @@
       }
     },
     methods: {
+      //从vuex获取相关方法
+      ...mapGetters(['getSchoolId', 'getUser']),
       //获取通知列表数据
       getNoticeList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 5,
-                pageNum: 1,
-                noticeList: [
-                  {
-                    n_id: 1,
-                    n_title: "关于系统升级的通知",
-                    n_content: "本系统将于2020年5月20日00:00~03:00进行系统更新，如果造成不便，敬请谅解！",
-                    publish_time: "2020-05-01 00:00",
-                    u_name: "正经仁"
-                  },
-                  {
-                    n_id: 2,
-                    n_title: "关于长江大学2020年研究生招生考试试题录入安排的通知",
-                    n_content: "测试通知内容",
-                    publish_time: "2020-04-02 00:00",
-                    u_name: "李二"
-                  },
-                  {
-                    n_id: 3,
-                    n_title: "关于北京大学2020年研究生招生考试试题录入安排的通知",
-                    n_content: "测试通知内容",
-                    publish_time: "2020-04-01 03:00",
-                    u_name: "李三"
-                  },
-                  {
-                    n_id: 4,
-                    n_title: "关于清华大学2020年研究生招生考试试题录入安排的通知",
-                    n_content: "测试通知内容",
-                    publish_time: "2020-04-01 00:00",
-                    u_name: "李四"
-                  },
-                  {
-                    n_id: 5,
-                    n_title: "关于华中科技大学大学2020年研究生招生考试试题录入安排的通知",
-                    n_content: "测试通知内容",
-                    publish_time: "2020-05-01 00:00",
-                    u_name: "李五"
-                  }
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取通知列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取通知列表失败！');
+        //网络请求
+        this.$http.get('/notice/get_notice_list/' + this.getSchoolId() + '/' + this.queryInfo.pageNum + '/' + this.queryInfo.pageSize).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.noticeList = res.data.noticeList;
-          this.total = res.data.total;
-        }, 300);
+          this.noticeList = res.data.data.rows;
+          this.total = res.data.data.total;
+        });
       },
       //监听pageSize改变
       handleSizeChange(newSize) {
@@ -194,7 +154,7 @@
       //监听页码值改变
       handleCurrentChange(newCurrent) {
         this.queryInfo.pageNum = newCurrent;
-        this.getUserList();
+        this.getNoticeList();
       },
       //点击按钮显示通知详情对话框
       showNoticeDetailDialog(obj) {
@@ -212,19 +172,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除通知提交的数据：", n_id);//----------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除通知返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除通知失败！');
+        //网络请求
+        this.$http.delete('/notice/delete_notice/' + n_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除通知成功！');
+          this.$message.success(res.data.message);
           this.getNoticeList();
-        }, 300);
+        });
       },
       //点击按钮发起发布通知请求
       addNotice() {
@@ -239,20 +194,17 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("发布通知提交的数据：", this.addNoticeForm);//-----------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("发布通知返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('发布通知失败！');
+          this.addNoticeForm.u_name = this.getUser().name;
+          this.addNoticeForm.u_id = this.getUser().u_id;
+          //网络请求
+          this.$http.post('/notice/save_notice', this.addNoticeForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('发布通知成功！');
+            this.$message.success(res.data.message);
             this.addNoticeDialogVisible = false;
             this.getNoticeList();
-          }, 300);
+          });
         });
       },
       //监听发布通知对话框关闭事件

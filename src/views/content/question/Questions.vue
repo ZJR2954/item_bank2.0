@@ -57,13 +57,16 @@
       <el-table border stripe :data="questionList">
         <el-table-column type="index" label="#"></el-table-column>
         <el-table-column label="题型" prop="q_type"></el-table-column>
-        <el-table-column label="试题内容预览" width="320px">
+        <el-table-column label="试题内容预览" width="400px">
           <template slot-scope="scope">
             <p class="question_content_preview">{{scope.row.q_content}}</p>
           </template>
         </el-table-column>
-        <el-table-column label="上传时间" width="150px" prop="upload_time"></el-table-column>
-        <el-table-column label="试题状态" prop="q_state"></el-table-column>
+        <el-table-column label="上传时间" width="150px" prop="upload_time">
+          <template slot-scope="scope">
+            {{scope.row.upload_time}}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180px">
           <template slot-scope="scope">
             <el-button size="mini" type="primary"
@@ -85,6 +88,9 @@
 </template>
 
 <script>
+  import moment from 'moment'
+  import {mapGetters} from 'vuex'
+
   export default {
     name: "questions",
     data() {
@@ -98,7 +104,8 @@
           q_id: '',
           q_type: '',
           q_chapter: '',
-          tags: ''
+          tags: '',
+          q_state: 1
         },
         //试题列表
         questionList: [],
@@ -108,57 +115,42 @@
           // 当前的页数
           pageNum: 1,
           // 当前每页显示多少条数据
-          pageSize: 1
+          pageSize: 5
         },
         //试题列表数据总数
         total: 0
       }
     },
     methods: {
+      //从vuex获取相关方法
+      ...mapGetters(['getUser', 'getFacultyId']),
       //获取题型列表数据
       getQTypeList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                qTypeList: [
-                  {q_type_id: 1, q_type_name: "选择题", subject_id: 1},
-                  {q_type_id: 2, q_type_name: "填空题", subject_id: 1},
-                  {q_type_id: 3, q_type_name: "简答题", subject_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取题型列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
             return this.$message.error('获取题型列表失败！');
           }
-          this.qTypeList = res.data.qTypeList;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if(item.subject.subject_id == this.getUser().operate_subject) {
+              this.qTypeList = item.questionTypes;
+            }
+          });
+        });
       },
       //获取章节列表数据
       getChapterList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                chapterList: [
-                  {chapter_id: 1, chapter_name: "绪论", subject_id: 1},
-                  {chapter_id: 2, chapter_name: "链表", subject_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取章节列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
             return this.$message.error('获取章节列表失败！');
           }
-          this.chapterList = res.data.chapterList;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if(item.subject.subject_id == this.getUser().operate_subject) {
+              this.chapterList = item.characters;
+            }
+          });
+        });
       },
       //点击按钮发起检索请求
       searchQuestion() {
@@ -172,87 +164,17 @@
       },
       //获取试题列表数据
       getQuestionList() {
-        console.log("获取试题列表提交的数据：", {searQuestionForm: this.searchQuestionForm, queryInfo: this.queryInfo});//-
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 4,
-                pageNum: 1,
-                questionList: [
-                  {
-                    q_id: 1,
-                    q_state: "通过",
-                    q_type: "选择题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    B. q-&gt;next=p-&gt;next; p=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
-                    "</p>",
-                    upload_time: "2020-01-18 14:00"
-                  },
-                  {
-                    q_id: 2,
-                    q_state: "通过",
-                    q_type: "填空题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n",
-                    upload_time: "2020-01-18 15:30"
-                  },
-                  {
-                    q_id: 3,
-                    q_state: "通过",
-                    q_type: "选择题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    B. q-&gt;next=p-&gt;next; p=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
-                    "</p>",
-                    upload_time: "2020-01-18 16:00"
-                  },
-                  {
-                    q_id: 4,
-                    q_state: "通过",
-                    q_type: "填空题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n",
-                    upload_time: "2020-01-18 16:30"
-                  }
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取试题列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取试题列表失败！');
+        //网络请求
+        this.$http.post('/question/search_question/' + this.getUser().operate_subject + '/' + this.queryInfo.pageNum + '/' + this.queryInfo.pageSize, this.searchQuestionForm).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.questionList = res.data.questionList;
-          this.total = res.data.total;
-        }, 300);
+          this.questionList = res.data.data.rows;
+          for (let i = 0; i < this.questionList.length; i++) {
+            this.questionList[i].upload_time = moment(new Date(this.questionList[i].upload_time)).format("YYYY-MM-DD HH:mm");
+          }
+          this.total = res.data.data.total;
+        });
       },
       //监听pageSize改变
       handleSizeChange(newSize) {
@@ -291,7 +213,7 @@
   }
 
   .question_list .question_content_preview {
-    width: 300px;
+    width: 380px;
     margin: 0;
     display: -webkit-box;
     -webkit-box-orient: vertical;

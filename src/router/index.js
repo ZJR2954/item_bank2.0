@@ -5,6 +5,8 @@ import store from '../store/index'
 /*路由懒加载*/
 //登录页面
 const Login = () => import("../views/Login")
+//忘记密码页
+const ForgetPassword = () => import("../views/ForgetPassword")
 //Home页面
 const Home = () => import("../views/Home")
 //欢迎页
@@ -59,6 +61,11 @@ const routes = [
     component: Login
   },
   {
+    path: '/forget_password',
+    name: 'forget-password',
+    component: ForgetPassword
+  },
+  {
     path: '/home',
     name: 'Home',
     component: Home,
@@ -96,7 +103,7 @@ const router = new VueRouter({
 
 //挂载路由导航守卫
 router.beforeEach((to, from, next) => {
-  if (to.path === '/login') return next();
+  if (to.path === '/login' || to.path === '/forget_password') return next();
   //获取token
   const tokenStr = window.sessionStorage.getItem('token');
   if (!tokenStr) return next('/login');

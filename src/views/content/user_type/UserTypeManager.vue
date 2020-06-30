@@ -42,7 +42,7 @@
       </el-table>
       <!-- 底部区域 -->
       <span slot="footer">
-        <el-button type="primary" @click="saveUserTypeInfo">保存</el-button>
+        <el-button type="primary" @click="saveUserTypeInfo(userTypeDetail)">保存</el-button>
         <el-button @click="userTypeDialogVisible = false">关闭</el-button>
       </span>
     </el-dialog>
@@ -54,6 +54,15 @@
                :model="addUserTypeForm" :rules="addUserTypeFormRules">
         <el-form-item label="用户类型名称" prop="u_type_name">
           <el-input v-model="addUserTypeForm.u_type_name"/>
+        </el-form-item>
+        <!--上级类型-->
+        <el-form-item label="上级类型" prop="parent_u_type">
+          <el-select class="select" placeholder="请选择上级类型" v-model="addUserTypeForm.parent_u_type">
+            <el-option label="超级管理员" :value="1"></el-option>
+            <el-option v-for="item in userTypeList" :key="item.u_type" :label="item.u_type_name"
+                       :value="item.u_type">
+            </el-option>
+          </el-select>
         </el-form-item>
       </el-form>
       <!-- 底部区域 -->
@@ -97,12 +106,16 @@
         addUserTypeDialogVisible: false,
         //添加用户类型的表单信息
         addUserTypeForm: {
-          u_type_name: ''
+          u_type_name: '',
+          parent_u_type: null
         },
         //添加用户类型表单信息的验证规则
         addUserTypeFormRules: {
           u_type_name: [
             {required: true, message: '请输入用户类型名称'}
+          ],
+          parent_u_type: [
+            {required: true, message: '请选择上级类型'}
           ]
         }
       }
@@ -110,27 +123,13 @@
     methods: {
       //获取用户类型列表数据
       getUserTypeList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                userTypeList: [
-                  {u_type: 2, u_type_name: "校级管理员", u_power: "1, 7, 9, 10"},
-                  {u_type: 3, u_type_name: "院级管理员", u_power: "1, 2, 7, 8"},
-                  {u_type: 4, u_type_name: "命题教师", u_power: "1, 2, 3, 4, 5"},
-                  {u_type: 5, u_type_name: "审核教师", u_power: "1, 2, 6"}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取用户类型列表返回的数据：", res);//-------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error("获取用户类型列表失败！");
+        //网络请求
+        this.$http.get('/user_type/get_all_user_type').then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.userTypeList = res.data.userTypeList;
-        }, 300);
+          this.userTypeList = res.data.data;
+        });
       },
       //点击按钮发起根据id删除用户类型请求
       async deleteUserTypeById(u_type) {
@@ -143,19 +142,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除用户类型提交的数据：", u_type);//----------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除用户类型返回的数据：", res);//-----------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除用户类型失败！');
+        //网络请求
+        this.$http.delete('/user_type/delete_user_type/' + u_type).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success("删除用户类型成功！");
+          this.$message.success(res.data.message);
           this.getUserTypeList();
-        }, 300);
+        });
       },
       //点击按钮显示用户类型详情对话框
       showUserTypeDetail(obj) {
@@ -189,7 +183,7 @@
         this.userTypePowerList = val;
       },
       //点击按钮发起修改用户类型权限请求
-      async saveUserTypeInfo() {
+      async saveUserTypeInfo(obj) {
         //弹框询问用户是否保存修改
         const confirmResult = await this.$confirm('此操作将修改用户类型权限，是否继续？', '提示', {
           confirmButtonText: '确定',
@@ -199,20 +193,20 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("修改用户类型权限提交的数据：", this.userTypePowerList);//--------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("修改用户类型权限返回的数据：", res);//-------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('修改用户类型权限失败！');
+        let uPowerList = [];
+        this.userTypePowerList.forEach((item)=> {
+          uPowerList.push(item.id);
+        })
+        obj.u_power = uPowerList.toString();
+        // 网络请求
+        this.$http.put('/user_type/update_user_type', obj).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('修改用户类型权限成功！');
+          this.$message.success(res.data.message);
           this.userTypeDialogVisible = false;
           this.getUserTypeList();
-        }, 300);
+        });
       },
       //监听用户类型详情对话框关闭事件
       userTypeDetailClosed() {
@@ -231,20 +225,14 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("添加用户类型提交的数据：", this.addUserTypeForm);//------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加用户类型返回的数据：", res);//---------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加用户类型失败！');
+          this.$http.post('/user_type/add_user_type', this.addUserTypeForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('添加用户类型成功！');
+            this.$message.success(res.data.message);
             this.addUserTypeDialogVisible = false;
             this.getUserTypeList();
-          }, 300);
+          });
         });
       },
       //监听添加用户类型对话框关闭事件

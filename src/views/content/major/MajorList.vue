@@ -49,6 +49,8 @@
 </template>
 
 <script>
+  import {mapGetters} from 'vuex'
+
   export default {
     name: "major-list",
     data() {
@@ -70,29 +72,20 @@
       }
     },
     methods: {
+      //从vuex获取相关方法
+      ...mapGetters(['getFacultyId', 'getUser']),
       //获取专业列表数据
       getMajorList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                majorList: [
-                  {major_id: 1, major_name: "计算机科学与技术", faculty_id: 1},
-                  {major_id: 2, major_name: "软件工程", faculty_id: 1},
-                  {major_id: 3, major_name: "物联网工程", faculty_id: 1},
-                  {major_id: 4, major_name: "网络工程", faculty_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取专业列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取专业列表失败！');
+        this.majorList = [];
+        //网络请求
+        this.$http.get('/major/major_list/' + this.getFacultyId()).then((res) => {
+          if (res.data.code !== 200) {
           }
-          this.majorList = res.data.majorList;
-        }, 300);
+          this.majorList = [];
+          res.data.data.forEach((item) => {
+            this.majorList.push(item.major);
+          });
+        });
       },
       //点击按钮发起根据id删除专业请求
       async deleteMajorById(major_id) {
@@ -105,19 +98,15 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除专业提交的数据：", major_id);//------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除专业返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除专业失败！');
+        //网络请求
+        this.$http.delete('/major/delete_major/' + this.getFacultyId() + '/' + major_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除专业成功！');
+          this.$message.success(res.data.message);
           this.getMajorList();
-        }, 300);
+        });
+
       },
       //点击按钮发起添加专业请求
       addMajor() {
@@ -132,20 +121,15 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("添加专业提交的数据：", this.addMajorForm);//------------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加专业返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加专业失败！');
+          //网络请求
+          this.$http.post('/major/add_major/' + this.getFacultyId(), this.addMajorForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success("添加专业成功！");
+            this.$message.success(res.data.message);
             this.addMajorDialogVisible = false;
             this.getMajorList();
-          }, 300);
+          });
         });
       },
       //监听添加专业对话框关闭事件

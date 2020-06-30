@@ -74,6 +74,8 @@
 </template>
 
 <script>
+  import {mapGetters} from 'vuex'
+
   export default {
     name: "subject-list",
     data() {
@@ -86,7 +88,7 @@
           // 当前的页数
           pageNum: 1,
           // 当前每页显示多少条数据
-          pageSize: 1
+          pageSize: 5
         },
         //学科列表数据总数
         total: 0,
@@ -117,55 +119,19 @@
       }
     },
     methods: {
+      //从vuex获取相关方法
+      ...mapGetters(['getFacultyId']),
       //获取学科列表数据
       getSubjectList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 3,
-                pageNum: 1,
-                subjectList: [
-                  {
-                    subject: {subject_id: 1, subject_name: "数据结构", category: "工学", major_id: 1},
-                    major: {major_id: 1, major_name: "计算机科学与技术", faculty_id: 1},
-                    qTypeList: [
-                      {q_type_id: 1, q_type_name: "选择题", subject_id: 1},
-                      {q_type_id: 2, q_type_name: "填空题", subject_id: 1},
-                      {q_type_id: 3, q_type_name: "简答题", subject_id: 1}
-                    ]
-                  },
-                  {
-                    subject: {subject_id: 2, subject_name: "计算机网络", category: "工学", major_id: 4},
-                    major: {major_id: 4, major_name: "网络工程", faculty_id: 1},
-                    qTypeList: [
-                      {q_type_id: 4, q_type_name: "选择题", subject_id: 1},
-                      {q_type_id: 5, q_type_name: "填空题", subject_id: 1},
-                      {q_type_id: 6, q_type_name: "简答题", subject_id: 1}
-                    ]
-                  },
-                  {
-                    subject: {subject_id: 3, subject_name: "计算机组成原理及应用", category: "工学", major_id: 3},
-                    major: {major_id: 3, major_name: "物联网工程", faculty_id: 1},
-                    qTypeList: [
-                      {q_type_id: 7, q_type_name: "选择题", subject_id: 1},
-                      {q_type_id: 8, q_type_name: "填空题", subject_id: 1},
-                      {q_type_id: 9, q_type_name: "简答题", subject_id: 1}
-                    ]
-                  },
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取学科列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取学科列表失败！');
+        this.subjectList = [];
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/' + this.queryInfo.pageNum + '/' + this.queryInfo.pageSize).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.subjectList = res.data.subjectList;
-          this.total = res.data.total;
-        }, 300);
+          this.subjectList = res.data.data.rows;
+          this.total = res.data.data.total;
+        });
       },
       //监听pageSize改变
       handleSizeChange(newSize) {
@@ -187,27 +153,15 @@
       },
       //获取专业列表数据
       getMajorList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                majorList: [
-                  {major_id: 1, major_name: "计算机科学与技术", faculty_id: 1},
-                  {major_id: 2, major_name: "软件工程", faculty_id: 1},
-                  {major_id: 3, major_name: "物联网工程", faculty_id: 1},
-                  {major_id: 4, major_name: "网络工程", faculty_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取专业列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取专业列表失败！');
+        //网络请求
+        this.$http.get('/major/major_list/' + this.getFacultyId()).then((res) => {
+          if (res.data.code !== 200) {
           }
-          this.majorList = res.data.majorList;
-        }, 300);
+          this.majorList = [];
+          res.data.data.forEach((item) => {
+            this.majorList.push(item.major);
+          });
+        });
       },
       //点击按钮发起根据id删除学科请求
       async deleteSubjectById(subject_id) {
@@ -220,19 +174,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消删除');
         }
-        console.log("根据id删除学科提交的数据：", subject_id);//----------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除学科返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除学科失败！');
+        //网络请求
+        this.$http.delete('/subject/delete_subject/' + this.getFacultyId() + '/' + subject_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除学科成功！');
+          this.$message.success(res.data.message);
           this.getSubjectList();
-        }, 300);
+        });
       },
       //点击按钮发起添加学科请求
       addSubject() {
@@ -247,20 +196,15 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消添加');
           }
-          console.log("添加学科提交的数据：", this.addSubjectForm);//-----------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加学科返回的数据：", res);//-------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加学科失败！');
+          //网络请求
+          this.$http.post('/subject/add_subject/'+this.getFacultyId(), this.addSubjectForm).then((res)=> {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('添加学科成功！');
+            this.$message.success(res.data.message);
             this.addSubjectDialogVisible = false;
             this.getSubjectList();
-          }, 300);
+          });
         });
       },
       //监听添加学科对话框关闭事件

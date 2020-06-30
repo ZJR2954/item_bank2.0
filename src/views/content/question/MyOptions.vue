@@ -12,13 +12,11 @@
       <el-table border stripe :data="questionList">
         <el-table-column type="index" label="#"></el-table-column>
         <el-table-column label="题型" prop="q_type"></el-table-column>
-        <el-table-column label="试题内容预览" width="320px">
+        <el-table-column label="试题内容预览" width="500px">
           <template slot-scope="scope">
             <p class="question_content_preview">{{scope.row.q_content}}</p>
           </template>
         </el-table-column>
-        <el-table-column label="上传时间" width="150px" prop="upload_time"></el-table-column>
-        <el-table-column label="试题状态" prop="q_state"></el-table-column>
         <el-table-column label="操作" width="180px">
           <template slot-scope="scope">
             <el-button size="mini" type="primary" @click="showQuestionDetail(scope.row.q_id)">
@@ -101,7 +99,7 @@
   }
 
   .question_list .question_content_preview {
-    width: 300px;
+    width: 480px;
     margin: 0;
     display: -webkit-box;
     -webkit-box-orient: vertical;

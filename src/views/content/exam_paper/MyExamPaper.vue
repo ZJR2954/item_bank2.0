@@ -37,6 +37,8 @@
 </template>
 
 <script>
+  import moment from 'moment'
+
   export default {
     name: "my-exam-paper",
     data() {
@@ -49,7 +51,7 @@
           // 当前的页数
           pageNum: 1,
           // 当前每页显示多少条数据
-          pageSize: 1
+          pageSize: 5
         },
         //我的试卷列表数据总数
         total: 0,
@@ -58,38 +60,17 @@
     methods: {
       //获取我的试卷列表数据
       getMyExamPaperList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 2,
-                pageNum: 1,
-                myExamPaperList: [
-                  {
-                    e_id: 1,
-                    e_title: "长江大学2020年研究生招生考试数据结构试卷",
-                    finish_type: "自动组卷",
-                    finish_time: "2020-01-18 16:30"
-                  },
-                  {
-                    e_id: 2,
-                    e_title: "长江大学2020年研究生招生考试计算机网络试卷",
-                    finish_type: "手动组卷",
-                    finish_time: "2020-01-18 16:00"
-                  }
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取我的试卷列表返回的数据：", res);//-------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取我的试卷列表失败！');
+        //网络请求
+        this.$http.get("/exam_paper/my_exam_papers/" + this.queryInfo.pageNum + "/" + this.queryInfo.pageSize).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.myExamPaperList = res.data.myExamPaperList;
-          this.total = res.data.total;
-        }, 300);
+          this.myExamPaperList = res.data.data.rows;
+          for (let i = 0; i < this.myExamPaperList.length; i++) {
+            this.myExamPaperList[i].finish_time = moment(new Date(this.myExamPaperList[i].finish_time)).format("YYYY-MM-DD HH:mm");
+          }
+          this.total = res.data.data.total;
+        });
       },
       //监听pageSize改变
       handleSizeChange(newSize) {
@@ -120,19 +101,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除试卷提交的数据：", e_id);//----------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除试卷返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除试卷失败！');
+        //网络请求
+        this.$http.delete("/exam_paper/delete_exam_paper/" + e_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除试卷成功！');
+          this.$message.success(res.data.message);
           this.getMyExamPaperList();
-        }, 300);
+        });
       }
     },
     created() {
