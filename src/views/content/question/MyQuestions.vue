@@ -24,7 +24,7 @@
             <el-button size="mini" type="primary" @click="showQuestionDetail(scope.row.q_id)">
               详情
             </el-button>
-            <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteQuestionById(scope.row.q_id)">
+            <el-button v-if="scope.row.q_state != '通过'" size="mini" type="danger" icon="el-icon-delete" @click="deleteQuestionById(scope.row.q_id)">
               删除
             </el-button>
           </template>
@@ -42,6 +42,8 @@
 </template>
 
 <script>
+  import moment from 'moment'
+
   export default {
     name: "my-questions",
     data() {
@@ -54,7 +56,7 @@
           // 当前的页数
           pageNum: 1,
           // 当前每页显示多少条数据
-          pageSize: 1
+          pageSize: 5
         },
         //试题列表数据总数
         total: 0
@@ -63,87 +65,26 @@
     methods: {
       //获取试题列表数据
       getQuestionList() {
-        console.log("获取试题列表提交的数据：", {searQuestionForm: this.searchQuestionForm, queryInfo: this.queryInfo});//-
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 4,
-                pageNum: 1,
-                questionList: [
-                  {
-                    q_id: 1,
-                    q_state: "未完成",
-                    q_type: "选择题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    B. q-&gt;next=p-&gt;next; p=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
-                    "</p>",
-                    upload_time: "2020-01-18 14:00"
-                  },
-                  {
-                    q_id: 2,
-                    q_state: "未通过",
-                    q_type: "填空题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n",
-                    upload_time: "2020-01-18 15:30"
-                  },
-                  {
-                    q_id: 3,
-                    q_state: "通过",
-                    q_type: "选择题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    B. q-&gt;next=p-&gt;next; p=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
-                    "</p>\n" +
-                    "<p>\n" +
-                    "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
-                    "</p>",
-                    upload_time: "2020-01-18 16:00"
-                  },
-                  {
-                    q_id: 4,
-                    q_state: "待审核",
-                    q_type: "填空题",
-                    q_content: "<p>\n" +
-                    "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                    "</p>\n",
-                    upload_time: "2020-01-18 16:30"
-                  }
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取试题列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取试题列表失败！');
+        //网络请求
+        this.$http.get('/question/my_questions/' + this.queryInfo.pageNum + '/' + this.queryInfo.pageSize).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.questionList = res.data.questionList;
-          this.total = res.data.total;
-        }, 300);
+          this.questionList = res.data.data.rows;
+          for (let i = 0; i < this.questionList.length; i++) {
+            this.questionList[i].upload_time = moment(new Date(this.questionList[i].upload_time)).format("YYYY-MM-DD HH:mm");
+            if (this.questionList[i].q_state == 1) {
+              this.questionList[i].q_state = "通过";
+            } else if (this.questionList[i].q_state == 2) {
+              this.questionList[i].q_state = "未通过";
+            } else if (this.questionList[i].q_state == 3) {
+              this.questionList[i].q_state = "待审核";
+            } else if (this.questionList[i].q_state == 4) {
+              this.questionList[i].q_state = "未完成";
+            }
+          }
+          this.total = res.data.data.total;
+        });
       },
       //监听pageSize改变
       handleSizeChange(newSize) {
@@ -174,19 +115,14 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("根据id删除试题提交的数据：", q_id);//----------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除试题返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除试题失败！');
+        //网络请求
+        this.$http.delete('/question/delete_question/' + q_id).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('删除试题成功！');
+          this.$message.success(res.data.message);
           this.getQuestionList();
-        }, 300);
+        });
       }
     },
     created() {

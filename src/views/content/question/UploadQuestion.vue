@@ -73,6 +73,7 @@
 </template>
 
 <script>
+  import {mapGetters} from 'vuex'
   import UEditor from '@/components/ueditor/UEditor'
 
   export default {
@@ -90,12 +91,17 @@
         difficultyList: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
         //上传试题表单信息
         uploadQuestionForm: {
+          q_category: '',
+          q_major: '',
+          q_subject: '',
           q_chapter: '',
           q_type: '',
           q_content: '',
           difficulty: '',
           knowledge: '',
-          answer: ''
+          answer: '',
+          tags: '',
+          q_state: null
         },
         //上传试题表单信息的验证规则
         uploadQuestionFormRules: {
@@ -115,68 +121,56 @@
       }
     },
     methods: {
+      //从vuex获取相关方法
+      ...mapGetters(['getUser', 'getFacultyId']),
       //获取题型列表数据
       getQTypeList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                qTypeList: [
-                  {q_type_id: 1, q_type_name: "选择题", subject_id: 1},
-                  {q_type_id: 2, q_type_name: "填空题", subject_id: 1},
-                  {q_type_id: 3, q_type_name: "简答题", subject_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取题型列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取题型列表失败！');
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.qTypeList = res.data.qTypeList;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if (item.subject.subject_id == this.getUser().operate_subject) {
+              this.qTypeList = item.questionTypes;
+            }
+          });
+        });
       },
       //获取章节列表数据
       getChapterList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                chapterList: [
-                  {chapter_id: 1, chapter_name: "绪论", subject_id: 1},
-                  {chapter_id: 2, chapter_name: "链表", subject_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取章节列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
             return this.$message.error('获取章节列表失败！');
           }
-          this.chapterList = res.data.chapterList;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if (item.subject.subject_id == this.getUser().operate_subject) {
+              this.chapterList = item.characters;
+              this.uploadQuestionForm.q_category = item.subject.category;
+              this.uploadQuestionForm.q_subject = item.subject.subject_name;
+              this.uploadQuestionForm.q_major = item.major.major_name;
+            }
+          });
+        });
       },
       //点击按钮发起保存试题请求
       saveQuestion() {
         this.$refs.uploadQuestionFormRef.validate(async (valid) => {
           if (!valid) return;
-          console.log("保存试题提交的数据：", this.uploadQuestionForm);//------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("保存试题返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('保存失败！');
+          this.uploadQuestionForm.q_state = 4;
+          this.uploadQuestionForm.tags = this.uploadQuestionForm.q_subject + ',' +
+              this.uploadQuestionForm.q_chapter + ',' +
+              this.uploadQuestionForm.q_type + ',' +
+              this.uploadQuestionForm.knowledge;
+          //网络请求
+          this.$http.post('/question/save_question', this.uploadQuestionForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('保存成功！');
+            this.$message.success(res.data.message);
             this.$router.push('/my_questions').catch(err => err);
-          }, 300);
+          });
         });
       },
       //点击按钮发起提交审核试题请求
@@ -192,19 +186,19 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("提交审核提交的数据：", this.uploadQuestionForm);//------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("提交审核返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('提交失败！');
+          this.uploadQuestionForm.q_state = 3;
+          this.uploadQuestionForm.tags = this.uploadQuestionForm.q_subject + ',' +
+              this.uploadQuestionForm.q_chapter + ',' +
+              this.uploadQuestionForm.q_type + ',' +
+              this.uploadQuestionForm.knowledge;
+          //网络请求
+          this.$http.post('/question/save_question', this.uploadQuestionForm).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('提交成功！');
+            this.$message.success(res.data.message);
             this.$router.push('/my_questions').catch(err => err);
-          }, 300);
+          });
         });
       }
     },

@@ -48,8 +48,8 @@
           <el-col :span="8">
             <el-form-item label="用户状态">
               <el-select placeholder="请选择用户状态" v-model="searchUserForm.u_state">
-                <el-option label="正常" value="正常"></el-option>
-                <el-option label="限制登录" value="限制登录"></el-option>
+                <el-option label="正常" value=1></el-option>
+                <el-option label="异常" value=0></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -71,15 +71,19 @@
         <el-table-column label="用户类型" prop="userType.u_type_name"></el-table-column>
         <el-table-column label="所属学校" prop="user.u_school"></el-table-column>
         <el-table-column label="姓名" prop="user.name"></el-table-column>
-        <el-table-column label="用户状态" prop="user.u_state"></el-table-column>
+        <el-table-column label="用户状态">
+          <template slot-scope="scope">
+            {{scope.row.user.u_state == 1 ? '正常' : '异常'}}
+          </template>
+        </el-table-column>
         <el-table-column label="操作" width="180px">
           <template slot-scope="scope">
             <el-button size="mini" type="primary" @click="showUserDetailDialog(scope.row)">
               详情
             </el-button>
-            <el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteUserById(scope.row.user.u_id)">
-              删除
-            </el-button>
+            <!--<el-button size="mini" type="danger" icon="el-icon-delete" @click="deleteUserById(scope.row.user.u_id)">-->
+            <!--删除-->
+            <!--</el-button>-->
           </template>
         </el-table-column>
       </el-table>
@@ -93,7 +97,7 @@
           </el-pagination>
         </el-col>
         <el-col :span="6" align="right">
-          <el-button size="medium" type="primary" @click="addUserDialogVisible = true">添加校级管理员</el-button>
+          <el-button size="medium" type="primary" @click="addUserDialogVisible = true">添加用户</el-button>
         </el-col>
       </el-row>
     </el-card>
@@ -149,8 +153,9 @@
           <el-col :span="12">
             <el-form-item label="操作学科">
               <el-select :disabled="subjectDisabled" v-model="userDetail.user.operate_subject">
-                <el-option v-for="item in subjectList" :label="item.subject_name" :key="item.subject_id"
-                           :value="item.subject_id">
+                <el-option v-for="item in subjectList"
+                           :label="item.subject.subject_name + '(' + item.major.major_name + ')'"
+                           :key="item.subject.subject_id" :value="item.subject.subject_id">
                 </el-option>
               </el-select>
             </el-form-item>
@@ -177,8 +182,8 @@
           <el-col :span="12">
             <el-form-item label="用户状态" prop="user.u_state">
               <el-select v-model="userDetail.user.u_state">
-                <el-option label="正常" value="正常"></el-option>
-                <el-option label="限制登录" value="限制登录"></el-option>
+                <el-option label="正常" :value="1"></el-option>
+                <el-option label="异常" :value="0"></el-option>
               </el-select>
             </el-form-item>
           </el-col>
@@ -191,8 +196,8 @@
       </span>
     </el-dialog>
 
-    <!--添加校级管理员的对话框-->
-    <el-dialog title="添加校级管理员" width="650px"
+    <!--添加用户的对话框-->
+    <el-dialog title="添加用户" width="650px"
                :visible.sync="addUserDialogVisible" @close="addUserDialogClosed">
       <el-form size="mini" label-width="100px" ref="addUserFormRef" :model="addUserForm" :rules="addUserFormRules">
         <el-row :gutter="2">
@@ -203,9 +208,29 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="所属学校" prop="u_school">
-              <el-select v-model="addUserForm.u_school">
+              <el-select v-model="addUserForm.u_school" @change="getFacultyList(addUserForm.u_school)">
                 <el-option v-for="item in schoolList" :label="item.school_name" :key="item.school_id"
                            :value="item.school_name">
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="2">
+          <el-col :span="12">
+            <el-form-item label="用户类型" prop="u_type">
+              <el-select v-model="addUserForm.u_type">
+                <el-option v-for="item in userTypeList" :label="item.u_type_name" :key="item.u_type"
+                           :value="item.u_type">
+                </el-option>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="所属院系" prop="u_faculty">
+              <el-select v-model="addUserForm.u_faculty" @change="getSubjectList(addUserForm.u_faculty)">
+                <el-option v-for="item in facultyList" :label="item.faculty_name" :key="item.faculty_id"
+                           :value="item.faculty_name">
                 </el-option>
               </el-select>
             </el-form-item>
@@ -218,8 +243,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="职工号" prop="job_number">
-              <el-input v-model="addUserForm.job_number"/>
+            <el-form-item label="操作学科" prop="operate_subject">
+              <el-select v-model="addUserForm.operate_subject">
+                <el-option v-for="item in subjectList"
+                           :label="item.subject.subject_name + '(' + item.major.major_name + ')'"
+                           :key="item.subject.subject_id" :value="item.subject.subject_id">
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -229,6 +259,13 @@
               <el-input v-model="addUserForm.email"/>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="职工号" prop="job_number">
+              <el-input v-model="addUserForm.job_number"/>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="2">
           <el-col :span="12">
             <el-form-item label="绑定手机号" prop="telephone">
               <el-input v-model="addUserForm.telephone"/>
@@ -254,7 +291,7 @@
     data() {
       return {
         //从vuex获取相关方法
-        ...mapGetters(['getUserType']),
+        ...mapGetters(['getUserType', 'getUser']),
         //学校列表
         schoolList: [],
         //用户类型列表
@@ -266,7 +303,7 @@
           u_school: '',
           job_number: '',
           name: '',
-          u_state: ''
+          u_state: null
         },
         //用户列表
         userList: [],
@@ -330,6 +367,9 @@
         //添加用户表单信息
         addUserForm: {
           u_school: '',
+          u_faculty: '',
+          operate_subject: null,
+          u_type: null,
           job_number: '',
           name: '',
           id_number: '',
@@ -343,6 +383,11 @@
           ],
           u_school: [
             {required: true, message: '请选择所属学校'}
+          ],
+          u_faculty: [],
+          operate_subject: [],
+          u_type: [
+            {required: true, message: '请选择用户类型'}
           ],
           id_number: [
             {required: true, message: '请输入用户身份证号'}
@@ -365,117 +410,42 @@
     methods: {
       //获取学校列表数据
       getSchoolList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                schoolList: [
-                  {school_id: 1, school_name: "长江大学"},
-                  {school_id: 2, school_name: "清华大学"},
-                  {school_id: 3, school_name: "北京大学"},
-                  {school_id: 4, school_name: "华中科技大学"},
-                  {school_id: 5, school_name: "武汉大学"}
-                ]
-              },
-              meta: {msg: '', status: 200}
-            }
-          };
-          console.log("获取学校列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取学校列表失败！');
+        //网络请求
+        this.$http.get('/school/school_list').then(res => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.schoolList = res.data.schoolList;
-        }, 300);
+          this.schoolList = [];
+          res.data.data.rows.forEach((item) => {
+            if (this.getUserType().u_type == 1 || this.getUser().u_school == item.school.school_name) {
+              this.schoolList.push(item.school);
+            }
+          });
+          this.searchUserForm.u_school = this.schoolList[0].school_name;
+        });
       },
       //获取用户类型列表数据
       getUserTypeList() {
         //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                userTypeList: [
-                  {u_type: 1, u_type_name: "超级管理员"},
-                  {u_type: 2, u_type_name: "校级管理员"},
-                  {u_type: 3, u_type_name: "院级管理员"},
-                  {u_type: 4, u_type_name: "命题教师"},
-                  {u_type: 5, u_type_name: "审核教师"}
-                ]
-              },
-              meta: {msg: '', status: 200}
-            }
-          };
-          console.log("获取用户类型列表返回的数据：", res);//-------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error("获取用户类型列表失败！");
+        this.$http.get('/user_type/get_all_user_type').then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.userTypeList = res.data.userTypeList;
-        }, 300);
+          this.userTypeList = res.data.data;
+          this.searchUserForm.u_type = this.userTypeList[0].u_type;
+        });
       },
       //获取用户列表
       getUserList() {
-        console.log("获取用户列表提交的数据：", {searchUserForm: this.searchUserForm, queryInfo: this.queryInfo});//------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                total: 2,
-                pageNum: 1,
-                userList: [
-                  {
-                    user: {
-                      u_id: 1,
-                      u_type: 1,
-                      u_school: "长江大学",
-                      u_faculty: "计算机科学学院",
-                      job_number: "111111111",
-                      name: "正经仁",
-                      id_number: "111111111111111111",
-                      email: "1111111111@qq.com",
-                      telephone: "11111111111",
-                      operate_subject: 1,
-                      u_state: "正常"
-                    },
-                    userType: {
-                      u_type: 1,
-                      u_type_name: "超级管理员",
-                      u_power: "0"
-                    }
-                  },
-                  {
-                    user: {
-                      u_id: 7,
-                      u_type: 2,
-                      u_school: "长江大学",
-                      u_faculty: "计算机科学学院",
-                      job_number: "222222222",
-                      name: "李二",
-                      id_number: "222222222222222222",
-                      email: "222222222@qq.com",
-                      telephone: "22222222222",
-                      operate_subject: 2,
-                      u_state: "正常"
-                    },
-                    userType: {
-                      u_type: 2,
-                      u_type_name: "校级管理员",
-                      u_power: "1, 7, 9, 10"
-                    }
-                  }
-                ]
-              },
-              meta: {msg: "获取用户列表成功", status: 200}
-            }
-          };
-          console.log("获取用户列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取用户列表失败！');
+        //网络请求
+        this.$http.post('/user/search_user/' + this.queryInfo.pageNum + '/' + this.queryInfo.pageSize, this.searchUserForm).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.userList = res.data.userList;
-          this.total = res.data.total;
-        }, 300);
+          this.$message.success(res.data.message);
+          this.userList = res.data.data.rows;
+          this.total = res.data.data.total;
+        });
       },
       //点击按钮发起检索请求
       searchUser() {
@@ -484,7 +454,7 @@
             this.searchUserForm.u_school.trim().length == 0 &&
             this.searchUserForm.job_number.trim().length == 0 &&
             this.searchUserForm.name.trim().length == 0 &&
-            this.searchUserForm.u_state.trim().length == 0) {
+            this.searchUserForm.u_state == null) {
           return this.$message.error('请至少填写一项查询条件！');
         }
         this.getUserList();
@@ -520,30 +490,18 @@
         }
       },
       //获取院系列表数据
-      getFacultyList(school_id) {
-        console.log("获取院系列表提交的数据：", school_id);//-------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                facultyList: [
-                  {faculty_id: 1, faculty_name: "计算机科学与技术"},
-                  {faculty_id: 2, faculty_name: "软件工程"},
-                  {faculty_id: 3, faculty_name: "物联网工程"},
-                  {faculty_id: 4, faculty_name: "网络工程"}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取用户列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取院系列表失败！');
+      getFacultyList(school_name) {
+        //网络请求
+        this.$http.get('/faculty/faculty_list/' + school_name).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.facultyList = res.data.facultyList;
+          this.facultyList = [];
+          res.data.data.rows.forEach((item) => {
+            this.facultyList.push(item.faculty);
+          });
           this.facultyDisabled = false;
-        }, 300);
+        });
       },
       //监听用户详情对话框所属院系改变
       facultyChanged() {
@@ -554,29 +512,21 @@
         }
       },
       //获取学科列表数据
-      getSubjectList(faculty_id) {
-        console.log("获取学科列表提交的数据：", faculty_id);//------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                subjectList: [
-                  {subject_id: 1, subject_name: "数据结构"},
-                  {subject_id: 2, subject_name: "计算机网络"},
-                  {subject_id: 3, subject_name: "计算机组成原理及应用"}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取学科列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('获取学科列表失败！');
+      getSubjectList(faculty_name) {
+        let faculty_id = 0;
+        this.facultyList.forEach((item) => {
+          if (item.faculty_name == faculty_name) {
+            faculty_id = item.faculty_id;
           }
-          this.subjectList = res.data.subjectList;
+        });
+        //网络请求
+        this.$http.get('/subject/subject_list/' + faculty_id + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error('操作学科' + res.data.message);
+          }
+          this.subjectList = res.data.data.rows;
           this.subjectDisabled = false;
-        }, 300);
+        });
       },
       //监听用户详情对话框关闭事件
       userDetailDialogClosed() {
@@ -595,47 +545,41 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("保存用户信息提交的数据：", this.userDetail);//-----------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("保存用户信息返回的数据：", res);//---------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('保存用户信息失败！');
+          //网络请求
+          this.$http.put('/user/edit_user_type', this.userDetail.user).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('保存用户信息成功！')
-            this.userDetailDialogVisible = false;
+            this.$message.success(res.data.message);
             this.getUserList();
-          }, 300);
+          });
         });
       },
-      //点击按钮发起根据id删除用户请求
-      async deleteUserById(u_id) {
-        //弹框询问用户是否保存修改
-        const confirmResult = await this.$confirm('此操作将永久删除此用户，是否继续？', '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }).catch(err => err);
-        if (confirmResult !== 'confirm') {
-          return this.$message.info('已取消！');
-        }
-        console.log("根据id删除用户提交的数据：", u_id);//----------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("根据id删除用户返回的数据：", res);//---------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('删除用户失败！');
-          }
-          this.$message.success('删除用户成功！');
-          this.getUserList();
-        }, 300);
-      },
+      // //点击按钮发起根据id删除用户请求
+      // async deleteUserById(u_id) {
+      //   //弹框询问用户是否保存修改
+      //   const confirmResult = await this.$confirm('此操作将永久删除此用户，是否继续？', '提示', {
+      //     confirmButtonText: '确定',
+      //     cancelButtonText: '取消',
+      //     type: 'warning'
+      //   }).catch(err => err);
+      //   if (confirmResult !== 'confirm') {
+      //     return this.$message.info('已取消！');
+      //   }
+      //   console.log("根据id删除用户提交的数据：", u_id);//----------------------------------------------------------------
+      //   //模拟网络请求
+      //   setTimeout(() => {
+      //     const {data: res} = {
+      //       data: {meta: {msg: "", status: 200}}
+      //     };
+      //     console.log("根据id删除用户返回的数据：", res);//---------------------------------------------------------------
+      //     if (res.meta.status !== 200) {
+      //       return this.$message.error('删除用户失败！');
+      //     }
+      //     this.$message.success('删除用户成功！');
+      //     this.getUserList();
+      //   }, 300);
+      // },
       //点击按钮发起添加用户请求
       addUser() {
         this.$refs.addUserFormRef.validate(async (valid) => {
@@ -649,20 +593,44 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("添加用户提交的数据：", this.addUserForm);//-------------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("添加用户返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('添加用户失败！');
+          //网络请求
+          if (this.addUserForm.u_type == 2) {
+            this.$http.post('/super_admin/add_school_admin', this.addUserForm).then((res) => {
+              if (res.data.code !== 200) {
+                return this.$message.error(res.data.message);
+              }
+              this.$message.success(res.data.message);
+              this.addUserDialogVisible = false;
+              this.getUserList();
+            });
+          } else if (this.addUserForm.u_type == 3) {
+            if (this.addUserForm.u_faculty.trim().length <= 0) {
+              return this.$message.error('请选择所属院系');
             }
-            this.$message.success('添加用户成功！');
-            this.addUserDialogVisible = false;
-            this.getUserList();
-          }, 300);
+            this.$http.post('/school_admin/add_faculty_admin', this.addUserForm).then((res) => {
+              if (res.data.code !== 200) {
+                return this.$message.error(res.data.message);
+              }
+              this.$message.success(res.data.message);
+              this.addUserDialogVisible = false;
+              this.getUserList();
+            });
+          } else if (this.addUserForm.u_type == 4 || this.addUserForm.u_type == 5) {
+            if (this.addUserForm.operate_subject == null) {
+              return this.$message.error('请选择操作学科');
+            }
+            this.$http.post('/faculty_admin/add_teacher', this.addUserForm).then((res) => {
+              if (res.data.code !== 200) {
+                return this.$message.error(res.data.message);
+              }
+              this.$message.success(res.data.message);
+              this.addUserDialogVisible = false;
+              this.getUserList();
+            });
+          }else {
+            return this.$message.warning('暂时不支持添加该类型的用户');
+          }
+
         });
       },
       //监听添加用户对话框关闭事件
@@ -674,7 +642,7 @@
         let userType = this.getUserType();
         let userTypePowerList = userType.u_power ? userType.u_power.split(',') : [];
         for (let item of userTypePowerList) {
-          if ('0' == item.trim()) {
+          if ('0' == item.trim() || '7' == item.trim()) {
             this.isUserManager = true;
           }
         }
@@ -683,7 +651,7 @@
     created() {
       this.getSchoolList();
       this.getUserTypeList();
-      this.getUserList();
+      // this.getUserList();
       this.powerManager();
     }
   }

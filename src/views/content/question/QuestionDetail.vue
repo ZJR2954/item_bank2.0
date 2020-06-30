@@ -9,7 +9,7 @@
     <!--卡片视图区域-->
     <el-card class="question_detail">
       <!--试题信息详情-->
-      <u-editor class="u_editor" :readonly="isReadOnly" v-model="questionDetail.question.q_content"/>
+      <u-editor v-if="uEditorIsShow" class="u_editor" :readonly="isReadOnly" v-model="questionDetail.question.q_content"/>
       <el-form size="mini" label-width="100px" hide-required-asterisk ref="questionDetailFormRef"
                :model="questionDetail" :rules="questionDetailRules">
         <el-row :gutter="2">
@@ -67,8 +67,17 @@
             <div>
               <div>试题id：{{questionDetail.question.q_id}}</div>
               <div>上传时间：{{questionDetail.question.upload_time}}</div>
-              <div>试题状态：{{questionDetail.question.q_state}}</div>
+              <div>
+                试题状态：
+                <span v-if="questionDetail.question.q_state == 1">通过</span>
+                <span v-if="questionDetail.question.q_state == 2">未通过</span>
+                <span v-if="questionDetail.question.q_state == 3">待审核</span>
+                <span v-if="questionDetail.question.q_state == 4">未完成</span>
+              </div>
               <div>上传者：{{questionDetail.user.name}}</div>
+              <div v-if="questionDetail.question.q_state == 2">
+                审核意见：{{questionDetail.question.opinion}}
+              </div>
             </div>
           </el-col>
         </el-row>
@@ -78,15 +87,16 @@
                        @click="saveQuestion">
               保存试题
             </el-button>
-            <el-button v-if="!isReadOnly" size="medium" :disabled="questionDetail.question.q_content == ''"
+            <el-button v-if="!isReadOnly" size="medium"
+                       :disabled="questionDetail.question.q_content == '' || questionDetail.question.q_state == 3"
                        @click="submitExamine">
               提交审核
             </el-button>
-            <el-button v-if="questionDetail.question.q_state == '通过'" size="medium" type="primary"
+            <el-button v-if="questionDetail.question.q_state == 1" size="medium" type="primary"
                        :disabled="isInMyOption" @click="addToMyOption">
               加入我的选题
             </el-button>
-            <el-button v-if="questionDetail.question.q_state == '通过'" size="medium"
+            <el-button v-if="questionDetail.question.q_state == 1" size="medium"
                        :disabled="!isInMyOption" @click="removeQuestionById(questionDetail.question.q_id)">
               移出我的选题
             </el-button>
@@ -107,6 +117,7 @@
 </template>
 
 <script>
+  import moment from 'moment'
   import {mapGetters, mapActions} from 'vuex'
   import UEditor from '@/components/ueditor/UEditor'
 
@@ -150,143 +161,70 @@
         //是否在我的选题
         isInMyOption: false,
         //是否审核
-        isExamine: false
+        isExamine: false,
+        uEditorIsShow: false
       }
     },
     computed: {},
     methods: {
       //从vuex获取相关方法
-      ...mapGetters(['getUser', 'getUserType', 'getOption']),
+      ...mapGetters(['getUser', 'getUserType', 'getOption', 'getFacultyId']),
       ...mapActions(['saveOption']),
       //获取题型列表数据
       getQTypeList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                qTypeList: [
-                  {q_type_id: 1, q_type_name: "选择题", subject_id: 1},
-                  {q_type_id: 2, q_type_name: "填空题", subject_id: 1},
-                  {q_type_id: 3, q_type_name: "简答题", subject_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取题型列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
             return this.$message.error('获取题型列表失败！');
           }
-          this.qTypeList = res.data.qTypeList;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if (item.subject.subject_id == this.getUser().operate_subject) {
+              this.qTypeList = item.questionTypes;
+            }
+          });
+        });
       },
       //获取章节列表数据
       getChapterList() {
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {
-              data: {
-                chapterList: [
-                  {chapter_id: 1, chapter_name: "绪论", subject_id: 1},
-                  {chapter_id: 2, chapter_name: "链表", subject_id: 1}
-                ]
-              },
-              meta: {msg: "", status: 200}
-            }
-          };
-          console.log("获取章节列表返回的数据：", res);//-----------------------------------------------------------------
-          if (res.meta.status !== 200) {
+        //网络请求
+        this.$http.get('/subject/subject_list/' + this.getFacultyId() + '/1/1000').then((res) => {
+          if (res.data.code !== 200) {
             return this.$message.error('获取章节列表失败！');
           }
-          this.chapterList = res.data.chapterList;
-        }, 300);
+          res.data.data.rows.forEach((item) => {
+            if (item.subject.subject_id == this.getUser().operate_subject) {
+              this.chapterList = item.characters;
+            }
+          });
+        });
       },
       //获取试题信息详情数据
       async getQuestionDetail() {
         //数据获取后决定权限，此方法须同步化
-        console.log("获取试题信息详情提交的数据：", this.$route.query.q_id);//--------------------------------------------
-        //模拟网络请求
-        const {data: res} = {
-          data: {
-            data: {
-              questionDetail: {
-                question: {
-                  q_id: 1,
-                  q_category: "工学",
-                  q_major: "计算机科学与技术",
-                  q_subject: "数据结构",
-                  q_chapter: "链表",
-                  q_state: "通过",
-                  q_type: "选择题",
-                  q_content: "<p>\n" +
-                  "    在一个单链表head中，若要在指针p所指结点后插入一个q指针所指结点，则执行_____。\n" +
-                  "</p>\n" +
-                  "<p>\n" +
-                  "    A. p-&gt;next=q-&gt;next; q-&gt;next=p;\n" +
-                  "</p>\n" +
-                  "<p>\n" +
-                  "    B. q-&gt;next=p-&gt;next; p=q;\n" +
-                  "</p>\n" +
-                  "<p>\n" +
-                  "    C. p-&gt;next=q-&gt;next; p-&gt;next=q;\n" +
-                  "</p>\n" +
-                  "<p>\n" +
-                  "    D. q-&gt;next=p-&gt;next; p-&gt;next=q;\n" +
-                  "</p>",
-                  q_img_url: "",
-                  difficulty: 0.9,
-                  knowledge: "链表",
-                  tags: "链表",
-                  answer: "D",
-                  upload_time: "2020-01-18 15:00",
-                  opinion: "",
-                  u_id: 4
-                },
-                user: {
-                  u_id: 5,
-                  u_type: 5,
-                  u_school: "长江大学",
-                  u_faculty: "计算机科学学院",
-                  job_number: "555555555",
-                  name: "李五",
-                  id_number: "555555555",
-                  email: "5555555555@qq.com",
-                  telephone: "55555555555",
-                  operate_subject: 1,
-                  u_state: "正常"
-                }
-              }
-            },
-            meta: {msg: "", status: 200}
-          }
-        };
-        if(this.$route.query.q_id != 1) {
-          res.data.questionDetail.question.q_state = "待审核";
-        }
-        console.log("获取试题信息详情返回的数据：", res);//---------------------------------------------------------------
-        if (res.meta.status !== 200) {
-          return this.$message.error('获取试题信息失败！');
+        //网络请求
+        const {data: res} = await this.$http.get('/question/question_detail/' + this.$route.query.q_id);
+        if (res.code !== 200) {
+          return this.$message.error(res.data.message);
         }
         this.questionDetail = res.data.questionDetail;
+        this.questionDetail.question.upload_time = moment(new Date(this.questionDetail.question.upload_time)).format("YYYY-MM-DD HH:mm");
+        this.powerManager();
+        this.uEditorIsShow = true;
       },
       //点击按钮发起保存试题请求
       saveQuestion() {
         this.$refs.questionDetailFormRef.validate(async (valid) => {
           if (!valid) return;
-          console.log("保存试题提交的数据：", this.questionDetail.question);//-------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("保存试题返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('保存失败！');
+          this.questionDetail.question.q_state = 4;
+          this.questionDetail.question.upload_time = null;
+          //网络请求
+          this.$http.post('/question/save_question', this.questionDetail.question).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('保存成功！');
-          }, 300);
+            this.$message.success(res.data.message);
+            this.getQuestionDetail();
+          });
         });
       },
       //点击按钮发起提交审核试题请求
@@ -302,23 +240,21 @@
           if (confirmResult !== 'confirm') {
             return this.$message.info('已取消！');
           }
-          console.log("提交审核提交的数据：", this.uploadQuestionForm);//------------------------------------------------
-          //模拟网络请求
-          setTimeout(() => {
-            const {data: res} = {
-              data: {meta: {msg: "", status: 200}}
-            };
-            console.log("提交审核返回的数据：", res);//------------------------------------------------------------------
-            if (res.meta.status !== 200) {
-              return this.$message.error('提交失败！');
+          this.questionDetail.question.q_state = 3;
+          this.questionDetail.question.upload_time = null;
+          //网络请求
+          this.$http.post('/question/save_question', this.questionDetail.question).then((res) => {
+            if (res.data.code !== 200) {
+              return this.$message.error(res.data.message);
             }
-            this.$message.success('提交成功！');
+            this.$message.success(res.data.message);
             this.$router.push('/my_questions').catch(err => err);
-          }, 300);
+          });
         });
       },
       //点击按钮加入我的选题
       addToMyOption() {
+        this.questionDetail.question.upload_time = null;
         let myOptions = this.getOption();
         myOptions.push(this.questionDetail.question);
         this.saveOption(myOptions);
@@ -357,19 +293,16 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        console.log("通过审核提交的数据：", {q_id: this.questionDetail.question.q_id});//--------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("通过审核返回的数据：", res);//--------------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('审核失败！');
+        this.questionDetail.question.q_state = 1;
+        this.questionDetail.question.upload_time = '';
+        //网络请求
+        this.$http.put('/question/examine_question', this.questionDetail.question).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('审核成功！');
+          this.$message.success(res.data.message);
           this.$router.push('/pending_questions').catch(err => err);
-        }, 300);
+        });
       },
       //点击按钮发起审核未通过请求
       async notPassExamine() {
@@ -382,25 +315,19 @@
         if (confirmResult !== 'confirm') {
           return this.$message.info('已取消！');
         }
-        if (this.questionDetail.question.opinion.trim().length == 0) {
+        if (this.questionDetail.question.opinion == null || this.questionDetail.question.opinion.trim().length == 0) {
           return this.$message.error('请填写审核意见！');
         }
-        console.log("未通过审核提交的数据：", {
-          q_id: this.questionDetail.question.q_id,
-          opinion: this.questionDetail.question.opinion
-        });//-----------------------------------------------------------------------------------------------------------
-        //模拟网络请求
-        setTimeout(() => {
-          const {data: res} = {
-            data: {meta: {msg: "", status: 200}}
-          };
-          console.log("未通过审核返回的数据：", res);//-------------------------------------------------------------------
-          if (res.meta.status !== 200) {
-            return this.$message.error('审核失败！');
+        this.questionDetail.question.q_state = 2;
+        this.questionDetail.question.upload_time = '';
+        //网络请求
+        this.$http.put('/question/examine_question', this.questionDetail.question).then((res) => {
+          if (res.data.code !== 200) {
+            return this.$message.error(res.data.message);
           }
-          this.$message.success('审核成功！');
+          this.$message.success(res.data.message);
           this.$router.push('/pending_questions').catch(err => err);
-        }, 300);
+        });
       },
       //权限管理方法
       powerManager() {
@@ -416,7 +343,7 @@
             this.isExamine = true;
           }
         }
-        if (this.questionDetail.question.q_state == "通过") this.isReadOnly = true;
+        if (this.questionDetail.question.q_state == 1) this.isReadOnly = true;
         for (let item of myOptions) {
           if (this.questionDetail.question.q_id == item.q_id) {
             this.isInMyOption = true;
@@ -428,7 +355,6 @@
       this.getQTypeList();
       this.getChapterList();
       this.getQuestionDetail();
-      this.powerManager();
     }
   }
 </script>
